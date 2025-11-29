@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/themes/app_theme.dart';
-import 'features/home/screens/home_screen.dart';
+import 'core/navigation/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,14 +14,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Expense Tracker',
-      debugShowCheckedModeBanner: false,  
+      debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const HomeScreen(),
+      home: const MainScreen(),
     );
   }
-}
-
-// Keep the old widget for reference but not used
+}// Keep the old widget for reference but not used
 class _OldMyApp extends StatelessWidget {
   const _OldMyApp({super.key});
 
