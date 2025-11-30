@@ -3,6 +3,8 @@ import '../modules/home/home_binding.dart';
 import '../modules/home/home_view.dart';
 import '../modules/transactions/add_transaction_binding.dart';
 import '../modules/transactions/add_transaction_view.dart';
+import '../modules/reports/reports_binding.dart';
+import '../modules/reports/reports_view.dart';
 import '../modules/main/main_binding.dart';
 import '../modules/main/main_view.dart';
 
@@ -28,6 +30,11 @@ class AppPages {
       name: Routes.ADD_TRANSACTION,
       page: () => AddTransactionView(),
       binding: AddTransactionBinding(),
+    ),
+    GetPage(
+      name: Routes.REPORTS,
+      page: () => ReportsView(),
+      binding: ReportsBinding(),
     ),
   ];
 }
