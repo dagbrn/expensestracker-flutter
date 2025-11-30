@@ -1,43 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
-import '../../features/home/screens/home_screen.dart';
-import '../../features/transactions/screens/transactions_screen.dart';
-import '../../features/reports/screens/reports_screen.dart';
-import '../../features/settings/screens/settings_screen.dart';
+import '../home/home_view.dart';
+import '../transactions/transactions_view.dart';
+import '../reports/reports_view.dart';
+import '../settings/settings_view.dart';
+import 'main_controller.dart';
 
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
-
-  @override
-  State<MainScreen> createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const TransactionsScreen(),
-    const ReportsScreen(),
-    const SettingsScreen(),
-  ];
-
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-  }
+class MainView extends GetView<MainController> {
+  const MainView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
+      body: Obx(() => IndexedStack(
+        index: controller.currentIndex.value,
+        children: const [
+          HomeView(),
+          TransactionsView(),
+          ReportsView(),
+          SettingsView(),
+        ],
+      )),
+      bottomNavigationBar: Obx(() => BottomNavigationBar(
+        currentIndex: controller.currentIndex.value,
+        onTap: controller.changePage,
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
@@ -65,7 +52,7 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Settings',
           ),
         ],
-      ),
+      )),
     );
   }
 }

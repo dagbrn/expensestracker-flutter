@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../core/constants/app_colors.dart';
 
-class ReportsScreen extends StatelessWidget {
-  const ReportsScreen({super.key});
+class TransactionsView extends StatelessWidget {
+  const TransactionsView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reports'),
+        title: const Text('Transactions'),
       ),
       body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.bar_chart_outlined,
+              Icons.receipt_long_outlined,
               size: 80,
               color: AppColors.grey400,
             ),
             SizedBox(height: 16),
             Text(
-              'Reports Screen',
+              'Transactions Screen',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
