@@ -19,6 +19,7 @@ class ReportsController extends GetxController {
   final dailySpending = <DailySpending>[].obs;
   
   final selectedMonth = DateTime.now().obs;
+  final selectedChartTab = 0.obs;
   final periodStart = DateTime.now().obs;
   final periodEnd = DateTime.now().obs;
 
@@ -261,6 +262,10 @@ class ReportsController extends GetxController {
   String get periodText {
     final formatter = DateFormat('d MMM yyyy');
     return '${formatter.format(periodStart.value)} - ${formatter.format(periodEnd.value)}';
+  }
+
+  void changeChartTab(int index) {
+    selectedChartTab.value = index;
   }
 }
 

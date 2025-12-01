@@ -127,24 +127,99 @@ class ReportsView extends GetView<ReportsController> {
                 ),
                 const SizedBox(height: 24),
 
-                // Income vs Expense Chart
-                IncomeExpenseChart(
-                  weeklyData: controller.weeklyData,
+                // Chart Tab Selector
+                Container(
+                  height: 45,
+                  decoration: BoxDecoration(
+                    color: AppColors.grey200.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(AppSizes.radiusM),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildTabButton(
+                        'Income vs Expense',
+                        0,
+                        controller,
+                      ),
+                      _buildTabButton(
+                        'Spending Trends',
+                        1,
+                        controller,
+                      ),
+                      _buildTabButton(
+                        'By Category',
+                        2,
+                        controller,
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
-                // Spending Trends Chart
-                SpendingTrendsChart(
-                  dailySpending: controller.dailySpending,
-                ),
-                const SizedBox(height: 24),
-
-                // Category Breakdown
-                CategoryBreakdownList(
-                  breakdowns: controller.categoryBreakdowns,
-                ),
+                // Chart Content based on selected tab
+                Obx(() {
+                  switch (controller.selectedChartTab.value) {
+                    case 0:
+                      return IncomeExpenseChart(
+                        weeklyData: controller.weeklyData,
+                      );
+                    case 1:
+                      return SpendingTrendsChart(
+                        dailySpending: controller.dailySpending,
+                      );
+                    case 2:
+                      return CategoryBreakdownList(
+                        breakdowns: controller.categoryBreakdowns,
+                      );
+                    default:
+                      return const SizedBox();
+                  }
+                }),
                 const SizedBox(height: 24),
               ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildTabButton(
+    String label,
+    int index,
+    ReportsController controller,
+  ) {
+    return Expanded(
+      child: Obx(() {
+        final isSelected = controller.selectedChartTab.value == index;
+        return GestureDetector(
+          onTap: () => controller.changeChartTab(index),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(AppSizes.radiusM - 2),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : [],
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
         );
