@@ -13,11 +13,35 @@ class CurrencyFormatter {
 
   static String formatCompact(double amount) {
     if (amount >= 1000000000) {
-      return 'Rp ${(amount / 1000000000).toStringAsFixed(1)}M';
+      final value = amount / 1000000000;
+      // Untuk milyar, tampilkan sampai 2 desimal jika ada
+      if (value % 1 == 0) {
+        return 'Rp ${value.toStringAsFixed(0)}M';
+      } else if ((value * 10) % 1 == 0) {
+        return 'Rp ${value.toStringAsFixed(1)}M';
+      } else {
+        return 'Rp ${value.toStringAsFixed(2)}M';
+      }
     } else if (amount >= 1000000) {
-      return 'Rp ${(amount / 1000000).toStringAsFixed(0)}jt';
+      final value = amount / 1000000;
+      // Untuk jutaan, tampilkan sampai 2 desimal jika ada
+      if (value % 1 == 0) {
+        return 'Rp ${value.toStringAsFixed(0)}jt';
+      } else if ((value * 10) % 1 == 0) {
+        return 'Rp ${value.toStringAsFixed(1)}jt';
+      } else {
+        return 'Rp ${value.toStringAsFixed(2)}jt';
+      }
     } else if (amount >= 1000) {
-      return 'Rp ${(amount / 1000).toStringAsFixed(0)}rb';
+      final value = amount / 1000;
+      // Untuk ribuan, tampilkan sampai 2 desimal jika ada
+      if (value % 1 == 0) {
+        return 'Rp ${value.toStringAsFixed(0)}rb';
+      } else if ((value * 10) % 1 == 0) {
+        return 'Rp ${value.toStringAsFixed(1)}rb';
+      } else {
+        return 'Rp ${value.toStringAsFixed(2)}rb';
+      }
     }
     return format(amount);
   }

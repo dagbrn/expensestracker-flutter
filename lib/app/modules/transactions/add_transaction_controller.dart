@@ -15,7 +15,7 @@ class AddTransactionController extends GetxController {
 
   final categories = <Map<String, dynamic>>[].obs;
   final wallets = <Map<String, dynamic>>[].obs;
-  
+
   final selectedCategoryId = Rxn<int>();
   final selectedWalletId = Rxn<int>();
   final selectedDate = DateTime.now().obs;
@@ -23,12 +23,29 @@ class AddTransactionController extends GetxController {
   final isSaving = false.obs;
 
   late String transactionType;
+  bool isEditMode = false;
+  int? editTransactionId;
+  double? oldAmount;
+  int? oldWalletId;
 
   @override
   void onInit() {
     super.onInit();
     final args = Get.arguments;
-    transactionType = args['type'] ?? 'expense';
+
+    if (args != null) {
+      isEditMode = args['isEdit'] ?? false;
+
+      if (isEditMode && args['transaction'] != null) {
+        final transaction = args['transaction'] as Map<String, dynamic>;
+        _loadEditData(transaction);
+      } else {
+        transactionType = args['type'] ?? 'expense';
+      }
+    } else {
+      transactionType = 'expense';
+    }
+
     loadData();
   }
 
@@ -37,6 +54,29 @@ class AddTransactionController extends GetxController {
     amountController.dispose();
     descriptionController.dispose();
     super.onClose();
+  }
+
+  void _loadEditData(Map<String, dynamic> transaction) {
+    editTransactionId = transaction['id'];
+    transactionType = transaction['category_type'];
+
+    // Set amount
+    final amount = (transaction['amount'] as num).toDouble();
+    amountController.text = amount.toStringAsFixed(0);
+    oldAmount = amount;
+
+    // Set description
+    if (transaction['description'] != null) {
+      descriptionController.text = transaction['description'];
+    }
+
+    // Set date
+    selectedDate.value = DateTime.parse(transaction['date']);
+
+    // Set category and wallet (will be set after loadData)
+    selectedCategoryId.value = transaction['category_id'];
+    selectedWalletId.value = transaction['wallet_id'];
+    oldWalletId = transaction['wallet_id'];
   }
 
   Future<void> loadData() async {
@@ -48,12 +88,15 @@ class AddTransactionController extends GetxController {
 
       categories.value = categoriesData;
       wallets.value = walletsData;
-      
-      if (categoriesData.isNotEmpty) {
-        selectedCategoryId.value = categoriesData.first['id'];
-      }
-      if (walletsData.isNotEmpty) {
-        selectedWalletId.value = walletsData.first['id'];
+
+      // Only set default values if not in edit mode
+      if (!isEditMode) {
+        if (categoriesData.isNotEmpty) {
+          selectedCategoryId.value = categoriesData.first['id'];
+        }
+        if (walletsData.isNotEmpty) {
+          selectedWalletId.value = walletsData.first['id'];
+        }
       }
     } catch (e) {
       Get.snackbar(
@@ -111,29 +154,21 @@ class AddTransactionController extends GetxController {
       isSaving.value = true;
 
       final amount = double.parse(
-        amountController.text.replaceAll('.', '').replaceAll(',', '')
-      );
-      
-      final transaction = TransactionModel(
-        amount: amount,
-        date: selectedDate.value.toIso8601String(),
-        categoryId: selectedCategoryId.value,
-        walletId: selectedWalletId.value,
-        description: descriptionController.text.isEmpty 
-            ? null 
-            : descriptionController.text,
+        amountController.text.replaceAll('.', '').replaceAll(',', ''),
       );
 
-      await _transactionRepo.insert(transaction);
-
-      // Update wallet balance
-      final isIncome = transactionType == 'income';
-      await _walletRepo.updateBalance(selectedWalletId.value!, amount, isIncome);
+      if (isEditMode) {
+        await _updateTransaction(amount);
+      } else {
+        await _createTransaction(amount);
+      }
 
       Get.back(result: true);
       Get.snackbar(
         'Success',
-        'Transaction added successfully',
+        isEditMode
+            ? 'Transaction updated successfully'
+            : 'Transaction added successfully',
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (e) {
@@ -144,6 +179,68 @@ class AddTransactionController extends GetxController {
       );
     } finally {
       isSaving.value = false;
+    }
+  }
+
+  Future<void> _createTransaction(double amount) async {
+    final transaction = TransactionModel(
+      amount: amount,
+      date: selectedDate.value.toIso8601String(),
+      categoryId: selectedCategoryId.value,
+      walletId: selectedWalletId.value,
+      description: descriptionController.text.isEmpty
+          ? null
+          : descriptionController.text,
+    );
+
+    await _transactionRepo.insert(transaction);
+
+    // Update wallet balance
+    final isIncome = transactionType == 'income';
+    await _walletRepo.updateBalance(selectedWalletId.value!, amount, isIncome);
+  }
+
+  Future<void> _updateTransaction(double amount) async {
+    final transaction = TransactionModel(
+      id: editTransactionId,
+      amount: amount,
+      date: selectedDate.value.toIso8601String(),
+      categoryId: selectedCategoryId.value,
+      walletId: selectedWalletId.value,
+      description: descriptionController.text.isEmpty
+          ? null
+          : descriptionController.text,
+    );
+
+    await _transactionRepo.update(transaction);
+
+    // Update wallet balance
+    final isIncome = transactionType == 'income';
+
+    // If wallet changed, revert old wallet and update new wallet
+    if (oldWalletId != selectedWalletId.value) {
+      // Revert old wallet balance
+      await _walletRepo.updateBalance(
+        oldWalletId!,
+        oldAmount!,
+        !isIncome, // Opposite operation to revert
+      );
+      // Add to new wallet
+      await _walletRepo.updateBalance(
+        selectedWalletId.value!,
+        amount,
+        isIncome,
+      );
+    } else {
+      // Same wallet, calculate the difference
+      final difference = amount - oldAmount!;
+      if (difference != 0) {
+        await _walletRepo.updateBalance(
+          selectedWalletId.value!,
+          difference.abs(),
+          difference > 0 ? isIncome : !isIncome,
+        );
+      }
     }
   }
 }
