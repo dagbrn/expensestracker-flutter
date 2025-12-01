@@ -5,6 +5,7 @@ import '../../core/constants/app_sizes.dart';
 import 'reports_controller.dart';
 import 'widgets/summary_card.dart';
 import 'widgets/income_expense_chart.dart';
+import 'widgets/spending_trends_chart.dart';
 import 'widgets/category_breakdown_list.dart';
 
 class ReportsView extends GetView<ReportsController> {
@@ -129,6 +130,12 @@ class ReportsView extends GetView<ReportsController> {
                 // Income vs Expense Chart
                 IncomeExpenseChart(
                   weeklyData: controller.weeklyData,
+                ),
+                const SizedBox(height: 24),
+
+                // Spending Trends Chart
+                SpendingTrendsChart(
+                  dailySpending: controller.dailySpending,
                 ),
                 const SizedBox(height: 24),
 

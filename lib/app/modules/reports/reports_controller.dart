@@ -16,6 +16,7 @@ class ReportsController extends GetxController {
   
   final categoryBreakdowns = <CategoryBreakdown>[].obs;
   final weeklyData = <WeeklyData>[].obs;
+  final dailySpending = <DailySpending>[].obs;
   
   final selectedMonth = DateTime.now().obs;
   final periodStart = DateTime.now().obs;
@@ -135,6 +136,9 @@ class ReportsController extends GetxController {
 
       // Calculate weekly data
       List<WeeklyData> weekly = _calculateWeeklyData(filteredTransactions, categories);
+      
+      // Calculate daily spending
+      List<DailySpending> daily = _calculateDailySpending(filteredTransactions, categories);
 
       // Update observables
       totalIncome.value = income;
@@ -143,6 +147,7 @@ class ReportsController extends GetxController {
       transactionCount.value = filteredTransactions.length;
       categoryBreakdowns.value = breakdowns;
       weeklyData.value = weekly;
+      dailySpending.value = daily;
 
     } catch (e) {
       Get.snackbar(
@@ -200,6 +205,54 @@ class ReportsController extends GetxController {
     return result;
   }
 
+  List<DailySpending> _calculateDailySpending(
+    List<Map<String, dynamic>> transactions,
+    List<Map<String, dynamic>> categories,
+  ) {
+    // Group transactions by day
+    Map<int, double> dailyTotals = {};
+
+    for (var tx in transactions) {
+      final txDate = DateTime.parse(tx['date']);
+      final day = txDate.day;
+      
+      final categoryId = tx['category_id'];
+      final amount = (tx['amount'] as num).toDouble();
+      
+      final category = categories.firstWhere(
+        (c) => c['id'] == categoryId,
+        orElse: () => {'type': 'expense'},
+      );
+
+      // Only count expenses for spending trends
+      if (category['type'] == 'expense') {
+        dailyTotals[day] = (dailyTotals[day] ?? 0) + amount;
+      }
+    }
+
+    // Convert to list with all days of the month
+    List<DailySpending> result = [];
+    final daysInMonth = DateTime(
+      selectedMonth.value.year,
+      selectedMonth.value.month + 1,
+      0,
+    ).day;
+
+    for (int i = 1; i <= daysInMonth; i++) {
+      result.add(DailySpending(
+        day: i,
+        amount: dailyTotals[i] ?? 0,
+        date: DateTime(
+          selectedMonth.value.year,
+          selectedMonth.value.month,
+          i,
+        ),
+      ));
+    }
+
+    return result;
+  }
+
   String get monthYearText {
     final formatter = DateFormat('MMMM yyyy');
     return formatter.format(selectedMonth.value);
@@ -236,5 +289,17 @@ class WeeklyData {
     required this.week,
     required this.income,
     required this.expense,
+  });
+}
+
+class DailySpending {
+  final int day;
+  final double amount;
+  final DateTime date;
+
+  DailySpending({
+    required this.day,
+    required this.amount,
+    required this.date,
   });
 }
