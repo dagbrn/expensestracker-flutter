@@ -1,9 +1,10 @@
 import 'package:get/get.dart';
+import 'package:flutter/material.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/currency_formatter.dart';
-import 'package:flutter/material.dart';
+import '../main/main_controller.dart';
 
 class TransactionsController extends GetxController {
   final TransactionRepository _transactionRepo = TransactionRepository();
@@ -47,6 +48,13 @@ class TransactionsController extends GetxController {
     selectedMonth.value = DateTime(now.year, now.month);
     _updatePeriodLabel();
     loadTransactions();
+    
+    // Listen to tab changes from MainController
+      ever(Get.find<MainController>().currentIndex, (index) {
+        if (index == 1) { // Transactions tab index
+          loadTransactions();
+        }
+      });
   }
 
   List<Map<String, dynamic>> get filteredTransactions {
