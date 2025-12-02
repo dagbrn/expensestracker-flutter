@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../../data/repositories/category_repository.dart';
+import '../main/main_controller.dart';
 
 class HomeController extends GetxController {
   final TransactionRepository _transactionRepo = TransactionRepository();
@@ -16,6 +17,13 @@ class HomeController extends GetxController {
   void onInit() {
     super.onInit();
     loadData();
+    
+    // Listen to tab changes from MainController
+    ever(Get.find<MainController>().currentIndex, (index) {
+      if (index == 0) { // Home tab index
+        loadData();
+      }
+    });
   }
 
   Future<void> loadData() async {
@@ -27,10 +35,9 @@ class HomeController extends GetxController {
       final firstDay = DateTime(now.year, now.month, 1);
       final lastDay = DateTime(now.year, now.month + 1, 0);
 
-      // Calculate balance for current month
-      final incomeCategories = await _categoryRepo.getByType('income');
-
+      // Get all transactions and categories
       final allTransactions = await _transactionRepo.getAll();
+      final categories = await _categoryRepo.getAll();
 
       double income = 0;
       double expense = 0;
@@ -42,8 +49,12 @@ class HomeController extends GetxController {
           final categoryId = tx['category_id'];
           final amount = (tx['amount'] as num).toDouble();
 
-          final isIncome = incomeCategories.any((c) => c['id'] == categoryId);
-          if (isIncome) {
+          final category = categories.firstWhere(
+            (c) => c['id'] == categoryId,
+            orElse: () => {'type': 'expense'},
+          );
+
+          if (category['type'] == 'income') {
             income += amount;
           } else {
             expense += amount;
@@ -81,6 +92,8 @@ class HomeController extends GetxController {
       totalExpense.value = expense;
       totalBalance.value = income - expense;
       recentTransactions.value = recentWithDetails;
+      
+      print('DEBUG HomeController: Income=$income, Expense=$expense, Balance=${income - expense}');
     } catch (e) {
       Get.snackbar(
         'Error',
