@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
 import '../home/home_view.dart';
+import '../home/home_controller.dart';
 import '../transactions/transactions_view.dart';
 import '../reports/reports_view.dart';
 import '../settings/settings_view.dart';
@@ -22,6 +23,34 @@ class MainView extends GetView<MainController> {
           SettingsView(),
         ],
       )),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.3),
+              blurRadius: 16,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () {
+            // Get HomeController and directly open expense transaction sheet
+            final homeController = Get.find<HomeController>();
+            homeController.openAddTransactionBottomSheet('expense');
+          },
+          backgroundColor: AppColors.primary,
+          elevation: 0,
+          shape: const CircleBorder(),
+          child: const Icon(
+            Icons.add,
+            size: 32,
+            color: Colors.white,
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: Obx(() => BottomNavigationBar(
         currentIndex: controller.currentIndex.value,
         onTap: controller.changePage,

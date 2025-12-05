@@ -12,23 +12,25 @@ class AddTransactionController extends GetxController {
 
   final amountController = TextEditingController();
   final descriptionController = TextEditingController();
+  final titleController = TextEditingController();
 
   final categories = <Map<String, dynamic>>[].obs;
   final wallets = <Map<String, dynamic>>[].obs;
-  
+
   final selectedCategoryId = Rxn<int>();
   final selectedWalletId = Rxn<int>();
   final selectedDate = DateTime.now().obs;
   final isLoading = false.obs;
   final isSaving = false.obs;
-
-  late String transactionType;
+  final transactionType = 'expense'.obs;
 
   @override
   void onInit() {
     super.onInit();
     final args = Get.arguments;
-    transactionType = args['type'] ?? 'expense';
+    if (args != null) {
+      transactionType.value = args['type'] ?? 'expense';
+    }
     loadData();
   }
 
@@ -36,6 +38,7 @@ class AddTransactionController extends GetxController {
   void onClose() {
     amountController.dispose();
     descriptionController.dispose();
+    titleController.dispose();
     super.onClose();
   }
 
@@ -43,12 +46,13 @@ class AddTransactionController extends GetxController {
     try {
       isLoading.value = true;
 
-      final categoriesData = await _categoryRepo.getByType(transactionType);
+      final categoriesData =
+          await _categoryRepo.getByType(transactionType.value);
       final walletsData = await _walletRepo.getAll();
 
       categories.value = categoriesData;
       wallets.value = walletsData;
-      
+
       if (categoriesData.isNotEmpty) {
         selectedCategoryId.value = categoriesData.first['id'];
       }
@@ -80,6 +84,15 @@ class AddTransactionController extends GetxController {
   }
 
   Future<void> saveTransaction() async {
+    if (titleController.text.isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Please enter transaction title',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
     if (amountController.text.isEmpty) {
       Get.snackbar(
         'Error',
@@ -111,23 +124,23 @@ class AddTransactionController extends GetxController {
       isSaving.value = true;
 
       final amount = double.parse(
-        amountController.text.replaceAll('.', '').replaceAll(',', '')
+        amountController.text.replaceAll('.', '').replaceAll(',', ''),
       );
-      
+
       final transaction = TransactionModel(
         amount: amount,
         date: selectedDate.value.toIso8601String(),
         categoryId: selectedCategoryId.value,
         walletId: selectedWalletId.value,
-        description: descriptionController.text.isEmpty 
-            ? null 
-            : descriptionController.text,
+        description:
+            descriptionController.text.isEmpty ? null : descriptionController.text,
+        type: transactionType.value,
       );
 
       await _transactionRepo.insert(transaction);
 
       // Update wallet balance
-      final isIncome = transactionType == 'income';
+      final isIncome = transactionType.value == 'income';
       await _walletRepo.updateBalance(selectedWalletId.value!, amount, isIncome);
 
       Get.back(result: true);

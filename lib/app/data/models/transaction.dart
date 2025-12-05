@@ -5,6 +5,7 @@ class TransactionModel {
   final int? categoryId;
   final int? walletId;
   final String? description;
+  final String type; // 'income' or 'expense'
   final String? createdAt;
   final String? updatedAt;
 
@@ -15,6 +16,7 @@ class TransactionModel {
     this.categoryId,
     this.walletId,
     this.description,
+    required this.type,
     this.createdAt,
     this.updatedAt,
   });
@@ -27,6 +29,7 @@ class TransactionModel {
       categoryId: map['category_id'] as int?,
       walletId: map['wallet_id'] as int?,
       description: map['description'] as String?,
+      type: map['type'] as String? ?? 'expense',
       createdAt: map['created_at'] as String?,
       updatedAt: map['updated_at'] as String?,
     );
@@ -39,6 +42,7 @@ class TransactionModel {
       'category_id': categoryId,
       'wallet_id': walletId,
       'description': description,
+      'type': type,
       'created_at': createdAt ?? DateTime.now().toIso8601String(),
       'updated_at': updatedAt,
     };
@@ -47,7 +51,6 @@ class TransactionModel {
     }
     return map;
   }
-
   TransactionModel copyWith({
     int? id,
     double? amount,
@@ -55,6 +58,7 @@ class TransactionModel {
     int? categoryId,
     int? walletId,
     String? description,
+    String? type,
     String? createdAt,
     String? updatedAt,
   }) {
@@ -65,8 +69,10 @@ class TransactionModel {
       categoryId: categoryId ?? this.categoryId,
       walletId: walletId ?? this.walletId,
       description: description ?? this.description,
+      type: type ?? this.type,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
-}
+} 
+

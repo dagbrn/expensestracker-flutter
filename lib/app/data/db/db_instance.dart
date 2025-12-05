@@ -8,7 +8,7 @@ class DatabaseInstance {
   DatabaseInstance._init();
 
   final String dbName = 'expense_tracker.db';
-  final int dbVersion = 1;
+  final int dbVersion = 2;
 
   Future<Database> get database async {
     if (_db != null) return _db!;
@@ -20,7 +20,25 @@ class DatabaseInstance {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, dbName);
 
-    return await openDatabase(path, version: dbVersion, onCreate: _createDB);
+    return await openDatabase(
+      path,
+      version: dbVersion,
+      onCreate: _createDB,
+      onUpgrade: _upgradeDB,
+    );
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Add type column to transactions table if it doesn't exist
+      try {
+        await db.execute(
+          'ALTER TABLE transactions ADD COLUMN type TEXT DEFAULT "expense"',
+        );
+      } catch (e) {
+        // Column might already exist
+      }
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -55,6 +73,7 @@ class DatabaseInstance {
       category_id INTEGER,
       wallet_id INTEGER,
       description TEXT,
+      type TEXT NOT NULL DEFAULT 'expense' CHECK(type IN ('income', 'expense')),
       created_at TEXT,
       updated_at TEXT,
       FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,

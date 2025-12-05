@@ -1,6 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/repositories/transaction_repository.dart';
 import '../../data/repositories/category_repository.dart';
+import '../../core/widgets/add_transaction_bottom_sheet.dart';
 
 class HomeController extends GetxController {
   final TransactionRepository _transactionRepo = TransactionRepository();
@@ -12,10 +14,24 @@ class HomeController extends GetxController {
   final totalExpense = 0.0.obs;
   final recentTransactions = <Map<String, dynamic>>[].obs;
 
+  final greetingText = 'Hey there!'.obs;
+
   @override
   void onInit() {
     super.onInit();
+    _setGreeting();
     loadData();
+  }
+
+  void _setGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      greetingText.value = 'Good morning!';
+    } else if (hour < 17) {
+      greetingText.value = 'Good afternoon!';
+    } else {
+      greetingText.value = 'Good evening!';
+    }
   }
 
   Future<void> loadData() async {
@@ -36,7 +52,7 @@ class HomeController extends GetxController {
       double expense = 0;
 
       for (var tx in allTransactions) {
-        final txDate = DateTime.parse(tx['date']);
+        final txDate = DateTime.tryParse(tx['date']) ?? DateTime.now();
         if (txDate.isAfter(firstDay.subtract(const Duration(days: 1))) &&
             txDate.isBefore(lastDay.add(const Duration(days: 1)))) {
           final categoryId = tx['category_id'];
@@ -92,14 +108,24 @@ class HomeController extends GetxController {
     }
   }
 
-  void navigateToAddTransaction(String type) async {
-    final result = await Get.toNamed(
-      '/add-transaction',
-      arguments: {'type': type},
+  void openAddTransactionBottomSheet(String type) {
+    showModalBottomSheet(
+      context: Get.context!,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      builder: (context) => AddTransactionBottomSheet(
+        initialType: type,
+        onTransactionAdded: () {
+          loadData();
+        },
+      ),
     );
-
-    if (result == true) {
-      loadData();
-    }
   }
+
 }
+
