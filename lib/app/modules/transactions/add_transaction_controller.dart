@@ -12,6 +12,7 @@ class AddTransactionController extends GetxController {
 
   final amountController = TextEditingController();
   final descriptionController = TextEditingController();
+  final titleController = TextEditingController();
 
   final categories = <Map<String, dynamic>>[].obs;
   final wallets = <Map<String, dynamic>>[].obs;
@@ -21,31 +22,15 @@ class AddTransactionController extends GetxController {
   final selectedDate = DateTime.now().obs;
   final isLoading = false.obs;
   final isSaving = false.obs;
-
-  late String transactionType;
-  bool isEditMode = false;
-  int? editTransactionId;
-  double? oldAmount;
-  int? oldWalletId;
+  final transactionType = 'expense'.obs;
 
   @override
   void onInit() {
     super.onInit();
     final args = Get.arguments;
-
     if (args != null) {
-      isEditMode = args['isEdit'] ?? false;
-
-      if (isEditMode && args['transaction'] != null) {
-        final transaction = args['transaction'] as Map<String, dynamic>;
-        _loadEditData(transaction);
-      } else {
-        transactionType = args['type'] ?? 'expense';
-      }
-    } else {
-      transactionType = 'expense';
+      transactionType.value = args['type'] ?? 'expense';
     }
-
     loadData();
   }
 
@@ -53,6 +38,7 @@ class AddTransactionController extends GetxController {
   void onClose() {
     amountController.dispose();
     descriptionController.dispose();
+    titleController.dispose();
     super.onClose();
   }
 
@@ -83,20 +69,18 @@ class AddTransactionController extends GetxController {
     try {
       isLoading.value = true;
 
-      final categoriesData = await _categoryRepo.getByType(transactionType);
+      final categoriesData =
+          await _categoryRepo.getByType(transactionType.value);
       final walletsData = await _walletRepo.getAll();
 
       categories.value = categoriesData;
       wallets.value = walletsData;
 
-      // Only set default values if not in edit mode
-      if (!isEditMode) {
-        if (categoriesData.isNotEmpty) {
-          selectedCategoryId.value = categoriesData.first['id'];
-        }
-        if (walletsData.isNotEmpty) {
-          selectedWalletId.value = walletsData.first['id'];
-        }
+      if (categoriesData.isNotEmpty) {
+        selectedCategoryId.value = categoriesData.first['id'];
+      }
+      if (walletsData.isNotEmpty) {
+        selectedWalletId.value = walletsData.first['id'];
       }
     } catch (e) {
       Get.snackbar(
@@ -123,6 +107,15 @@ class AddTransactionController extends GetxController {
   }
 
   Future<void> saveTransaction() async {
+    if (titleController.text.isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Please enter transaction title',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+
     if (amountController.text.isEmpty) {
       Get.snackbar(
         'Error',
@@ -157,11 +150,21 @@ class AddTransactionController extends GetxController {
         amountController.text.replaceAll('.', '').replaceAll(',', ''),
       );
 
-      if (isEditMode) {
-        await _updateTransaction(amount);
-      } else {
-        await _createTransaction(amount);
-      }
+      final transaction = TransactionModel(
+        amount: amount,
+        date: selectedDate.value.toIso8601String(),
+        categoryId: selectedCategoryId.value,
+        walletId: selectedWalletId.value,
+        description:
+            descriptionController.text.isEmpty ? null : descriptionController.text,
+        type: transactionType.value,
+      );
+
+      await _transactionRepo.insert(transaction);
+
+      // Update wallet balance
+      final isIncome = transactionType.value == 'income';
+      await _walletRepo.updateBalance(selectedWalletId.value!, amount, isIncome);
 
       Get.back(result: true);
       Get.snackbar(
