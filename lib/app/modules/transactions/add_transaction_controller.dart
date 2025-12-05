@@ -42,6 +42,29 @@ class AddTransactionController extends GetxController {
     super.onClose();
   }
 
+  void _loadEditData(Map<String, dynamic> transaction) {
+    editTransactionId = transaction['id'];
+    transactionType = transaction['category_type'];
+
+    // Set amount
+    final amount = (transaction['amount'] as num).toDouble();
+    amountController.text = amount.toStringAsFixed(0);
+    oldAmount = amount;
+
+    // Set description
+    if (transaction['description'] != null) {
+      descriptionController.text = transaction['description'];
+    }
+
+    // Set date
+    selectedDate.value = DateTime.parse(transaction['date']);
+
+    // Set category and wallet (will be set after loadData)
+    selectedCategoryId.value = transaction['category_id'];
+    selectedWalletId.value = transaction['wallet_id'];
+    oldWalletId = transaction['wallet_id'];
+  }
+
   Future<void> loadData() async {
     try {
       isLoading.value = true;
@@ -146,7 +169,9 @@ class AddTransactionController extends GetxController {
       Get.back(result: true);
       Get.snackbar(
         'Success',
-        'Transaction added successfully',
+        isEditMode
+            ? 'Transaction updated successfully'
+            : 'Transaction added successfully',
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (e) {
@@ -157,6 +182,68 @@ class AddTransactionController extends GetxController {
       );
     } finally {
       isSaving.value = false;
+    }
+  }
+
+  Future<void> _createTransaction(double amount) async {
+    final transaction = TransactionModel(
+      amount: amount,
+      date: selectedDate.value.toIso8601String(),
+      categoryId: selectedCategoryId.value,
+      walletId: selectedWalletId.value,
+      description: descriptionController.text.isEmpty
+          ? null
+          : descriptionController.text,
+    );
+
+    await _transactionRepo.insert(transaction);
+
+    // Update wallet balance
+    final isIncome = transactionType == 'income';
+    await _walletRepo.updateBalance(selectedWalletId.value!, amount, isIncome);
+  }
+
+  Future<void> _updateTransaction(double amount) async {
+    final transaction = TransactionModel(
+      id: editTransactionId,
+      amount: amount,
+      date: selectedDate.value.toIso8601String(),
+      categoryId: selectedCategoryId.value,
+      walletId: selectedWalletId.value,
+      description: descriptionController.text.isEmpty
+          ? null
+          : descriptionController.text,
+    );
+
+    await _transactionRepo.update(transaction);
+
+    // Update wallet balance
+    final isIncome = transactionType == 'income';
+
+    // If wallet changed, revert old wallet and update new wallet
+    if (oldWalletId != selectedWalletId.value) {
+      // Revert old wallet balance
+      await _walletRepo.updateBalance(
+        oldWalletId!,
+        oldAmount!,
+        !isIncome, // Opposite operation to revert
+      );
+      // Add to new wallet
+      await _walletRepo.updateBalance(
+        selectedWalletId.value!,
+        amount,
+        isIncome,
+      );
+    } else {
+      // Same wallet, calculate the difference
+      final difference = amount - oldAmount!;
+      if (difference != 0) {
+        await _walletRepo.updateBalance(
+          selectedWalletId.value!,
+          difference.abs(),
+          difference > 0 ? isIncome : !isIncome,
+        );
+      }
     }
   }
 }
